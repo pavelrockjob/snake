@@ -1,12 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./reset.css">
 </head>
+
 <body>
-    <h1>Snake</h1>
+    <div class="wrapper">
+        <div id="start-menu" class="menu">
+            <h1 class="menu__title">Snake Game</h1>
+            <button id="start-btn" class="menu__btn">Start</button>
+        </div>
+
+        <div id="end-menu" class="menu hidden">
+            <h1 class="menu__title">Game over</h1>
+            <p class="menu__description">Your Points
+                <br>
+                <span class="menu__count">322</span>
+            </p>
+            <button id="retry-btn" class="menu__btn">Retry</button>
+        </div>
+        <canvas id="canvas" class="canvas hidden" />
+    </div>
+
+    <script src="./main.js"></script>
 </body>
+
 </html>
