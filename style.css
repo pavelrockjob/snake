@@ -45,8 +45,8 @@
 }
 
 .canvas {
-  width: 100%;
-  flex-grow: 1;
+  width: 400px;
+  height: 400px;
 }
 
 .hidden {
