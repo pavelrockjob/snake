@@ -14,6 +14,7 @@ const startGame = () => {
   drawField()
 }
 
+
 const endGame = () => {
   endMenu.classList.remove("hidden")
   canvas.classList.add("hidden")
@@ -22,10 +23,25 @@ const endGame = () => {
 const drawField = () => {
   context.rect(0, 0, 400, 400)
   context.fill()
-  context.lineWidth = 2
-  context.strokeStyle = 'gray'
-  context.strokeRect(0, 0, 50, 50)
+
+  const fieldWidth = 20
+  for(let i = 0; i < 400; i += fieldWidth) {
+    for(let j = 0; j < 400; j += fieldWidth) {
+      context.beginPath()
+      context.lineWidth = 1
+      context.strokeStyle = "red"
+      context.moveTo(i, j)
+      context.lineTo(i + fieldWidth, j)
+      context.lineTo(i + fieldWidth, j + fieldWidth)
+      context.lineTo(i, j + fieldWidth)
+      context.stroke()
+      context.closePath()
+    }
+  }
+
 }
+
+startGame()
 
 // const drawLine = () => {
 //   context.lineWidth = 1
