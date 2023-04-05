@@ -7,6 +7,8 @@ const SNAKE_DIRECTIONS = {
   bottom: 3
 }
 
+const FIELD_COLOR = 'black'
+
 const cellRects = {
   minX: 0,
   maxX: 7,
@@ -19,10 +21,13 @@ class Snake {
   coords = {}
   direction = null
   color = null
+  history = []
+  maxHistoryLength = 5
   constructor({ x, y, color }) {
     this.coords.x = x
     this.coords.y = y
     this.color = color
+
     this.direction = this.coords.x < cellRects.maxX
       ? SNAKE_DIRECTIONS.right
       : SNAKE_DIRECTIONS.left
@@ -31,7 +36,23 @@ class Snake {
     for(let i = 0; i < this.size; i++) {
       let diff = this.coords.x + this.size < cellRects.maxX ? -i : i
       drawRect(this.coords.x - diff, this.coords.y, this.color)
+      if (this.direction === 2) {
+        this.history.push([this.coords.x - diff, this.coords.y])
+      } else {
+        this.history.unshift([this.coords.x - diff, this.coords.y])
+      }
     }
+  }
+  update() {
+    drawRect(this.coords.x, this.coords.y, this.color)
+    this.history.unshift([this.coords.x, this.coords.y])
+    const lastCoords = this.history[this.history.length - 1]
+    const [x, y] = lastCoords
+    deleteRect(x, y)
+    if (this.history.length === this.size + 1) {
+      this.history.pop()
+    }
+    console.log(this.history)
   }
 }
 
@@ -80,6 +101,7 @@ const generateApple = () => {
 
 const drawField = () => {
   context.rect(0, 0, canvasSize.width, canvasSize.height)
+  context.fillStyle = FIELD_COLOR
   context.fill()
 
   for(let i = 0; i < canvasSize.width; i += fieldWidth) {
@@ -115,9 +137,13 @@ const drawRect = (x, y, color) => {
   context.closePath()
 }
 
+const deleteRect = (x, y) => {
+  drawRect(x, y, FIELD_COLOR)
+}
+
 startGame()
 
-requestAnimationFrame(function step() {
+let timeout = setTimeout(function step() {
   const directionsToEndGame = {
     [SNAKE_DIRECTIONS.left]: snake.coords.x === cellRects.minX,
     [SNAKE_DIRECTIONS.right]: snake.coords.x === cellRects.maxX,
@@ -127,6 +153,8 @@ requestAnimationFrame(function step() {
   const directionToEndGame = directionsToEndGame[snake.direction]
   if(directionToEndGame) {
     endGame()
+    clearTimeout(timeout)
+    return false
   }
 
   const moveDirections = {
@@ -139,8 +167,9 @@ requestAnimationFrame(function step() {
   const moveDirection = moveDirections[snake.direction];
   moveDirection()
 
-  requestAnimationFrame(step)
-})
+  snake.update()
+  timeout = setTimeout(step, 500)
+}, 500)
 
 startBtn.addEventListener("click", startGame)
 
