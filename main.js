@@ -1,5 +1,43 @@
 import { rand } from "./utils.js"
 
+const SNAKE_DIRECTIONS = {
+  left: 0,
+  top: 1,
+  right: 2,
+  bottom: 3
+}
+
+const maxCellRects = {
+  x: 7,
+  y: 7,
+}
+
+class Snake {
+  size = 3
+  coords = {}
+  direction = null
+  constructor({ x, y }) {
+    this.coords.x = x
+    this.coords.y = y
+    this.direction = this.coords.x < maxCellRects.x
+      ? SNAKE_DIRECTIONS.right
+      : SNAKE_DIRECTIONS.left
+  }
+  initSnake() {
+    for(let i = 0; i < this.size; i++) {
+      let diff = this.coords.x + this.size < maxCellRects.x ? -i : i
+      drawRect(this.coords.x - diff, this.coords.y, 'white')
+    }
+  }
+}
+
+const coords = {
+  x: rand(0, maxCellRects.x),
+  y: rand(0, maxCellRects.y)
+}
+
+const snake = new Snake(coords)
+
 const startMenu = document.querySelector("#start-menu")
 const endMenu = document.querySelector("#end-menu")
 
@@ -15,16 +53,6 @@ const canvasSize = {
 }
 const fieldWidth = canvasSize.width / 8
 
-const maxCellRects = {
-  x: 7,
-  y: 7,
-}
-
-const initSnakeCoords = {
-  x: rand(0, maxCellRects.x),
-  y: rand(0, maxCellRects.y)
-}
-
 const startGame = () => {
   startMenu.classList.add("hidden")
   canvas.classList.remove("hidden")
@@ -33,7 +61,7 @@ const startGame = () => {
 
   drawField()
   generateApple()
-  initSnake()
+  snake.initSnake()
 }
 
 const endGame = () => {
@@ -45,14 +73,6 @@ const generateApple = () => {
   const cellX = rand(0, maxCellRects.x)
   const cellY = rand(0, maxCellRects.y)
   drawRect(cellX, cellY, 'green')
-}
-
-const SNAKE_SIZE = 3
-const initSnake = () => {
-  for(let i = 0; i < SNAKE_SIZE; i++) {
-    let diff = initSnakeCoords.x + SNAKE_SIZE < maxCellRects.x ? -i : i
-    drawRect(initSnakeCoords.x - diff, initSnakeCoords.y, 'white')
-  }
 }
 
 const drawField = () => {
@@ -93,6 +113,11 @@ const drawRect = (x, y, color) => {
 }
 
 startGame()
+
+requestAnimationFrame(function step () {
+  
+  requestAnimationFrame(step)
+})
 
 startBtn.addEventListener("click", startGame)
 
