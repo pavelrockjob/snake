@@ -7,36 +7,39 @@ const SNAKE_DIRECTIONS = {
   bottom: 3
 }
 
-const maxCellRects = {
-  x: 7,
-  y: 7,
+const cellRects = {
+  minX: 0,
+  maxX: 7,
+  minY: 0,
+  maxY: 7
 }
 
 class Snake {
   size = 3
   coords = {}
   direction = null
-  constructor({ x, y }) {
+  color = null
+  constructor({ x, y, color }) {
     this.coords.x = x
     this.coords.y = y
-    this.direction = this.coords.x < maxCellRects.x
+    this.color = color
+    this.direction = this.coords.x < cellRects.maxX
       ? SNAKE_DIRECTIONS.right
       : SNAKE_DIRECTIONS.left
   }
-  initSnake() {
+  init() {
     for(let i = 0; i < this.size; i++) {
-      let diff = this.coords.x + this.size < maxCellRects.x ? -i : i
-      drawRect(this.coords.x - diff, this.coords.y, 'white')
+      let diff = this.coords.x + this.size < cellRects.maxX ? -i : i
+      drawRect(this.coords.x - diff, this.coords.y, this.color)
     }
   }
 }
 
-const coords = {
-  x: rand(0, maxCellRects.x),
-  y: rand(0, maxCellRects.y)
-}
-
-const snake = new Snake(coords)
+const snake = new Snake({
+  x: rand(0, cellRects.maxX),
+  y: rand(0, cellRects.maxY),
+  color: "blue"
+})
 
 const startMenu = document.querySelector("#start-menu")
 const endMenu = document.querySelector("#end-menu")
@@ -61,7 +64,7 @@ const startGame = () => {
 
   drawField()
   generateApple()
-  snake.initSnake()
+  snake.init()
 }
 
 const endGame = () => {
@@ -70,8 +73,8 @@ const endGame = () => {
 }
 
 const generateApple = () => {
-  const cellX = rand(0, maxCellRects.x)
-  const cellY = rand(0, maxCellRects.y)
+  const cellX = rand(0, cellRects.maxX)
+  const cellY = rand(0, cellRects.maxY)
   drawRect(cellX, cellY, 'green')
 }
 
@@ -114,8 +117,28 @@ const drawRect = (x, y, color) => {
 
 startGame()
 
-requestAnimationFrame(function step () {
-  
+requestAnimationFrame(function step() {
+  const directionsToEndGame = {
+    [SNAKE_DIRECTIONS.left]: snake.coords.x === cellRects.minX,
+    [SNAKE_DIRECTIONS.right]: snake.coords.x === cellRects.maxX,
+    [SNAKE_DIRECTIONS.top]: snake.coords.y === cellRects.minY,
+    [SNAKE_DIRECTIONS.bottom]: snake.coords.y === cellRects.maxY,
+  }
+  const directionToEndGame = directionsToEndGame[snake.direction]
+  if(directionToEndGame) {
+    endGame()
+  }
+
+  const moveDirections = {
+    [SNAKE_DIRECTIONS.left]: () => snake.coords.x -= 1,
+    [SNAKE_DIRECTIONS.right]: () => snake.coords.x += 1,
+    [SNAKE_DIRECTIONS.top]: () => snake.coords.y -= 1,
+    [SNAKE_DIRECTIONS.bottom]: () => snake.coords.y += 1,
+  }
+
+  const moveDirection = moveDirections[snake.direction];
+  moveDirection()
+
   requestAnimationFrame(step)
 })
 
