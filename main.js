@@ -1,3 +1,5 @@
+import { rand } from "./utils.js"
+
 const startMenu = document.querySelector("#start-menu")
 const endMenu = document.querySelector("#end-menu")
 
@@ -13,6 +15,16 @@ const canvasSize = {
 }
 const fieldWidth = canvasSize.width / 8
 
+const maxCellRects = {
+  x: 7,
+  y: 7,
+}
+
+const initSnakeCoords = {
+  x: rand(0, maxCellRects.x),
+  y: rand(0, maxCellRects.y)
+}
+
 const startGame = () => {
   startMenu.classList.add("hidden")
   canvas.classList.remove("hidden")
@@ -20,12 +32,27 @@ const startGame = () => {
   canvas.height = canvasSize.height
 
   drawField()
+  generateApple()
+  initSnake()
 }
-
 
 const endGame = () => {
   endMenu.classList.remove("hidden")
   canvas.classList.add("hidden")
+}
+
+const generateApple = () => {
+  const cellX = rand(0, maxCellRects.x)
+  const cellY = rand(0, maxCellRects.y)
+  drawRect(cellX, cellY, 'green')
+}
+
+const SNAKE_SIZE = 3
+const initSnake = () => {
+  for(let i = 0; i < SNAKE_SIZE; i++) {
+    let diff = initSnakeCoords.x + SNAKE_SIZE < maxCellRects.x ? -i : i
+    drawRect(initSnakeCoords.x - diff, initSnakeCoords.y, 'white')
+  }
 }
 
 const drawField = () => {
@@ -37,10 +64,6 @@ const drawField = () => {
       drawCell(i, j, 'red')
     }
   }
-
-  const cellX = rand(1, 8)
-  const cellY = rand(1, 8)
-  drawRect(cellX, cellY, 'green')
 }
 
 const drawCell = (x ,y, color) => {
@@ -67,10 +90,6 @@ const drawRect = (x, y, color) => {
   context.lineTo(x, y + fieldWidth)
   context.fill()
   context.closePath()
-}
-
-const rand = (min, max) => {
-  return Math.floor((Math.random() * max - min) + min)
 }
 
 startGame()
