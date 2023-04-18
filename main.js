@@ -1,175 +1,238 @@
-import { rand } from "./utils.js"
+import { rand, restrict } from './utils.js'
 
-const SNAKE_DIRECTIONS = {
-  left: 0,
-  top: 1,
-  right: 2,
-  bottom: 3
+const SNAKE_DEFAULTS = {
+  segments: [],
+  length: 3,
+  direction: 'right',
+  nextDirection: 'right'
 }
 
-const FIELD_COLOR = 'black'
-
-const cellRects = {
-  minX: 0,
-  maxX: 7,
-  minY: 0,
-  maxY: 7
+const DIRECTION_KEYS = {
+  up: 'up',
+  down: 'down',
+  left: 'left',
+  right: 'right'
 }
 
-class Snake {
-  size = 3
-  coords = {}
-  direction = null
-  color = null
-  history = []
-  maxHistoryLength = 5
-  constructor({ x, y, color }) {
-    this.coords.x = x
-    this.coords.y = y
-    this.color = color
+const DIRECTIONS = {
+  [DIRECTION_KEYS.up]: -1,
+  [DIRECTION_KEYS.down]: 1,
+  [DIRECTION_KEYS.left]: -1,
+  [DIRECTION_KEYS.right]: 1
+}
 
-    this.direction = this.coords.x < cellRects.maxX
-      ? SNAKE_DIRECTIONS.right
-      : SNAKE_DIRECTIONS.left
+function getAxis(direction) {
+  return direction === DIRECTION_KEYS.up || direction === DIRECTION_KEYS.down ? 'y' : 'x'
+}
+
+class Field {
+  canvas
+  context
+  width
+  height
+  cell
+  cells
+  bounds
+  color
+  snake
+  apple = {
+    x: 0,
+    y: 0,
+    drawn: false
   }
-  init() {
-    for(let i = 0; i < this.size; i++) {
-      let diff = this.coords.x + this.size < cellRects.maxX ? -i : i
-      drawRect(this.coords.x - diff, this.coords.y, this.color)
-      if (this.direction === 2) {
-        this.history.push([this.coords.x - diff, this.coords.y])
-      } else {
-        this.history.unshift([this.coords.x - diff, this.coords.y])
+  default = {
+    width: 800,
+    height: 800,
+    cell: 40,
+    color: 'DarkBlue'
+  }
+  constructor(selector, options = this.default) {
+    this.canvas = document.querySelector(selector)
+    this.context = this.canvas.getContext('2d')
+    this.setSize(options)
+  }
+  draw(init) {
+    this.clearContext()
+    this.drawBorder()
+    this.drawCells()
+    this.drawSnake(init)
+    this.drawApple()
+  }
+  setSize(options) {
+    this.width = options.width ?? this.default.width
+    this.height = options.height ?? this.default.height
+
+    this.cell = options.cell ?? this.default.cell
+    this.cells = {
+      x: this.width / this.cell - 2,
+      y: this.height / this.cell - 2
+    }
+
+    this.bounds = {
+      x: this.width - this.cell,
+      y: this.height - this.cell
+    }
+
+    this.color = options.color ?? this.default.color
+
+    this.canvas.width = this.width
+    this.canvas.height = this.height
+  }
+  drawBorder() {
+    this.context.strokeStyle = 'black'
+    this.context.lineWidth = this.cell
+    const point = this.cell / 2
+    this.context.rect(point, point, this.bounds.x, this.bounds.y)
+    this.context.stroke()
+  }
+  drawCells() {
+    this.context.strokeStyle = 'gray'
+    this.context.lineWidth = 1
+    this.context.beginPath()
+    for (let i = 1; i < this.cells.y; i++) {
+      const y = i * this.cell + this.cell
+      this.context.moveTo(this.cell, y)
+      this.context.lineTo(this.bounds.x, y)
+    }
+    for (let i = 1; i < this.cells.x; i++) {
+      const x = i * this.cell + this.cell
+      this.context.moveTo(x, this.cell)
+      this.context.lineTo(x, this.bounds.y)
+    }
+    this.context.stroke()
+  }
+  drawSquare(x, y, color = this.color) {
+    this.context.fillStyle = color
+    this.context.fillRect(x * this.cell, y * this.cell, this.cell, this.cell)
+  }
+  drawCircle(x, y, color = 'SeaGreen') {
+    const centerX = x * this.cell + this.cell / 2
+    const centerY = y * this.cell + this.cell / 2
+    this.context.fillStyle = color
+    this.context.beginPath()
+    this.context.arc(centerX, centerY, this.cell / 2, 0, Math.PI * 2, false)
+    this.context.fill()
+  }
+  drawApple() {
+    if (!this.apple.drawn) {
+      this.apple.x = restrict(rand(1, this.cells.x), this.cells.x, 1)
+      this.apple.y = restrict(rand(1, this.cells.y), this.cells.y, 1)
+    }
+
+    if (this.hasEqualCell()) {
+      this.drawApple()
+      return
+    }
+
+    this.drawCircle(this.apple.x, this.apple.y)
+    this.apple.drawn = true
+  }
+  drawSnake(init = true) {
+    if (init) {
+      const x = restrict(rand(1, this.cells.x), this.cells.x, this.snake.length)
+      const y = restrict(rand(1, this.cells.y), this.cells.y, 1)
+      for (let i = 0; i < this.snake.length; i++) {
+        this.snake.segments.unshift({ x: x + i, y })
       }
     }
+    this.snake.segments.forEach(el => this.drawSquare(el.x, el.y))
   }
-  update() {
-    drawRect(this.coords.x, this.coords.y, this.color)
-    this.history.unshift([this.coords.x, this.coords.y])
-    const lastCoords = this.history[this.history.length - 1]
-    const [x, y] = lastCoords
-    deleteRect(x, y)
-    if (this.history.length === this.size + 1) {
-      this.history.pop()
-    }
-    console.log(this.history)
+  updateSnake() {
+    this.snake.direction = this.snake.nextDirection
+
+    const value = DIRECTIONS[this.snake.direction]
+    const axis = getAxis(this.snake.direction)
+    const head = this.snake.segments.at(0)
+    if (!head) return
+
+    const newSegment = { ...head }
+    newSegment[axis] += value
+
+    this.snake.segments.pop()
+    this.snake.segments.unshift(newSegment)
+
+    this.draw(false)
+  }
+  changeDirection(direction) {
+    if (this.snake.segments.length == 0) return
+    this.snake.nextDirection = direction
+  }
+  hasEqualCell() {
+    return !!this.snake.segments.filter(el => JSON.stringify(el) === JSON.stringify(this.apple))?.length
+  }
+  clearContext() {
+    this.context.reset()
   }
 }
 
-const snake = new Snake({
-  x: rand(0, cellRects.maxX),
-  y: rand(0, cellRects.maxY),
-  color: "blue"
+class Game extends Field {
+  started = false
+  score = 0
+  interval
+  speed = 1000
+  startMenu
+  endMenu
+  startBtn
+  retryBtn
+  scoreEl
+  keys = {
+    enter: () => this.start(),
+    escape: () => this.end(),
+    arrowup: () => this.changeDirection(DIRECTION_KEYS.up),
+    arrowdown: () => this.changeDirection(DIRECTION_KEYS.down),
+    arrowleft: () => this.changeDirection(DIRECTION_KEYS.left),
+    arrowright: () => this.changeDirection(DIRECTION_KEYS.right),
+  }
+  constructor(selector, options) {
+    super(selector, options)
+    this.startMenu = document.querySelector('#start-menu')
+    this.endMenu = document.querySelector('#end-menu')
+    this.startBtn = document.querySelector('#start-btn')
+    this.retryBtn = document.querySelector('#retry-btn')
+    this.scoreEl = document.querySelector('#score')
+    this.initListeners()
+  }
+  start() {
+    if (this.started) return
+    this.reset()
+    this.startMenu.classList.add('hidden')
+    this.endMenu.classList.add('hidden')
+    this.canvas.classList.remove('hidden')
+    this.draw()
+    this.initInterval()
+    this.started = true
+  }
+  end() {
+    if (!this.started) return
+    clearInterval(this.interval)
+    this.scoreEl.innerHTML = this.score
+    this.canvas.classList.add('hidden')
+    this.endMenu.classList.remove('hidden')
+    this.started = false
+  }
+  retry() {
+    this.start()
+  }
+  reset() {
+    this.score = 0
+    this.snake = structuredClone(SNAKE_DEFAULTS)
+    this.apple = { x: 0, y: 0, drawn: false }
+  }
+  initListeners() {
+    this.startBtn.addEventListener('click', () => this.start())
+    this.retryBtn.addEventListener('click', () => this.retry())
+    document.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase()
+      if (this.keys.hasOwnProperty(key)) this.keys[key]()
+    })
+  }
+  initInterval() {
+    this.interval = setInterval(() => {
+      this.updateSnake()
+    }, this.speed)
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const game = new Game('#canvas')
 })
-
-const startMenu = document.querySelector("#start-menu")
-const endMenu = document.querySelector("#end-menu")
-
-const startBtn = document.querySelector("#start-btn")
-const retryBtn = document.querySelector("#retry-btn")
-
-const canvas = document.querySelector("#canvas")
-const context = canvas.getContext('2d')
-
-const canvasSize = {
-  width: 400,
-  height: 400,
-}
-const fieldWidth = canvasSize.width / 8
-
-const startGame = () => {
-  startMenu.classList.add("hidden")
-  canvas.classList.remove("hidden")
-  canvas.width = canvasSize.width
-  canvas.height = canvasSize.height
-
-  drawField()
-  generateApple()
-  snake.init()
-}
-
-const endGame = () => {
-  endMenu.classList.remove("hidden")
-  canvas.classList.add("hidden")
-}
-
-const generateApple = () => {
-  const cellX = rand(0, cellRects.maxX)
-  const cellY = rand(0, cellRects.maxY)
-  drawRect(cellX, cellY, 'green')
-}
-
-const drawField = () => {
-  context.rect(0, 0, canvasSize.width, canvasSize.height)
-  context.fillStyle = FIELD_COLOR
-  context.fill()
-
-  for(let i = 0; i < canvasSize.width; i += fieldWidth) {
-    for(let j = 0; j < canvasSize.width; j += fieldWidth) {
-      drawCell(i, j, 'red')
-    }
-  }
-}
-
-const drawCell = (x ,y, color) => {
-  context.beginPath()
-  context.lineWidth = 1
-  context.strokeStyle = color
-  context.moveTo(x, y)
-  context.lineTo(x + fieldWidth, y)
-  context.lineTo(x + fieldWidth, y + fieldWidth)
-  context.lineTo(x, y + fieldWidth)
-  context.stroke()
-  context.closePath()
-}
-
-const drawRect = (x, y, color) => {
-  x = x * fieldWidth
-  y = y * fieldWidth
-  context.beginPath()
-  context.lineWidth = 1
-  context.fillStyle = color
-  context.moveTo(x, y)
-  context.lineTo(x + fieldWidth, y)
-  context.lineTo(x + fieldWidth, y + fieldWidth)
-  context.lineTo(x, y + fieldWidth)
-  context.fill()
-  context.closePath()
-}
-
-const deleteRect = (x, y) => {
-  drawRect(x, y, FIELD_COLOR)
-}
-
-startGame()
-
-let timeout = setTimeout(function step() {
-  const directionsToEndGame = {
-    [SNAKE_DIRECTIONS.left]: snake.coords.x === cellRects.minX,
-    [SNAKE_DIRECTIONS.right]: snake.coords.x === cellRects.maxX,
-    [SNAKE_DIRECTIONS.top]: snake.coords.y === cellRects.minY,
-    [SNAKE_DIRECTIONS.bottom]: snake.coords.y === cellRects.maxY,
-  }
-  const directionToEndGame = directionsToEndGame[snake.direction]
-  if(directionToEndGame) {
-    endGame()
-    clearTimeout(timeout)
-    return false
-  }
-
-  const moveDirections = {
-    [SNAKE_DIRECTIONS.left]: () => snake.coords.x -= 1,
-    [SNAKE_DIRECTIONS.right]: () => snake.coords.x += 1,
-    [SNAKE_DIRECTIONS.top]: () => snake.coords.y -= 1,
-    [SNAKE_DIRECTIONS.bottom]: () => snake.coords.y += 1,
-  }
-
-  const moveDirection = moveDirections[snake.direction];
-  moveDirection()
-
-  snake.update()
-  timeout = setTimeout(step, 500)
-}, 500)
-
-startBtn.addEventListener("click", startGame)
-
