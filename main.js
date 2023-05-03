@@ -130,6 +130,9 @@ class Field {
 
     if (this.hasEqualCell()) {
       this.score += 1
+      if (this.speed > 500) {
+        this.speed -= 50
+      }
 
       this.resetApple()
 
@@ -254,7 +257,7 @@ class Game extends Field {
   }
   end() {
     if (!this.started) return
-    clearInterval(this.interval)
+    clearTimeout(this.interval)
     this.scoreEl.innerHTML = this.score
     this.canvas.classList.add('hidden')
     this.endMenu.classList.remove('hidden')
@@ -265,6 +268,7 @@ class Game extends Field {
   }
   reset() {
     this.score = 0
+    this.speed = 1000
     this.snake = structuredClone(SNAKE_DEFAULTS)
     this.apple = { x: 0, y: 0, drawn: false }
   }
@@ -277,8 +281,10 @@ class Game extends Field {
     })
   }
   initInterval() {
-    this.interval = setInterval(() => {
-      this.updateSnake()
+    const self = this
+    this.interval = setTimeout(function tick() {
+      self.updateSnake()
+      self.interval = setTimeout(tick, self.speed)
     }, this.speed)
   }
 }
