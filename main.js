@@ -35,6 +35,9 @@ class Field {
   bounds
   color
   snake
+  get snakeHead() {
+    return this.snake.segments[0] || null
+  }
   apple = {
     x: 0,
     y: 0,
@@ -149,23 +152,37 @@ class Field {
 
     const value = DIRECTIONS[this.snake.direction]
     const axis = getAxis(this.snake.direction)
-    const head = this.snake.segments.at(0)
-    if (!head) return
+    if (!this.snakeHead) return
 
-    const newSegment = { ...head }
+    const newSegment = { ...this.snakeHead }
     newSegment[axis] += value
 
     this.snake.segments.pop()
     this.snake.segments.unshift(newSegment)
 
+
+    if(this.snakeHead.x === 0 || this.snakeHead.x === this.cells.x + 1 || this.snakeHead.y === 0 || this.snakeHead.y === this.cells.y + 1) {
+      this.end();
+      return
+    }
+
     this.draw(false)
   }
   changeDirection(direction) {
     if (this.snake.segments.length == 0) return
+
+    const reversedDirections = {
+      [DIRECTION_KEYS.up]: DIRECTION_KEYS.down,
+      [DIRECTION_KEYS.right]: DIRECTION_KEYS.left,
+      [DIRECTION_KEYS.down]: DIRECTION_KEYS.up,
+      [DIRECTION_KEYS.left]: DIRECTION_KEYS.right,
+    }
+    if(reversedDirections[direction] === this.snake.direction) return
+
     this.snake.nextDirection = direction
   }
   hasEqualCell() {
-    const head = this.snake.segments.at(0)
+    const head = this.snakeHead
     return head.x === this.apple.x && head.y === this.apple.y
   }
   clearContext() {
