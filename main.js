@@ -118,13 +118,26 @@ class Field {
   }
   drawApple() {
     if (!this.apple.drawn) {
-      this.apple.x = restrict(rand(1, this.cells.x), this.cells.x, 1)
-      this.apple.y = restrict(rand(1, this.cells.y), this.cells.y, 1)
+      this.apple.x = rand(1, this.cells.x)
+      this.apple.y = rand(1, this.cells.y)
+      this.snake.segments.forEach(segment => {
+        if (this.apple.x === segment.x && this.apple.y === segment.y) {
+          this.drawApple()
+          return false
+        }
+      })
     }
 
     if (this.hasEqualCell()) {
       this.score += 1
+
       this.resetApple()
+
+      if (this.snake.last) {
+        this.snake.segments.push(this.snake.last)
+        this.snake.last = null
+      }
+
       this.draw(false)
       return
     }
@@ -139,7 +152,7 @@ class Field {
   }
   drawSnake(init = true) {
     if (init) {
-      const x = restrict(rand(1, this.cells.x), this.cells.x, this.snake.length)
+      const x = restrict(rand(1, this.cells.x), this.cells.x - 1, this.snake.length)
       const y = restrict(rand(1, this.cells.y), this.cells.y, 1)
       for (let i = 0; i < this.snake.length; i++) {
         this.snake.segments.unshift({ x: x + i, y })
@@ -157,9 +170,21 @@ class Field {
     const newSegment = { ...this.snakeHead }
     newSegment[axis] += value
 
-    this.snake.segments.pop()
+    this.snake.last = this.snake.segments.pop()
     this.snake.segments.unshift(newSegment)
 
+    for (let i = 1; i < this.snake.segments.length; i++) {
+      const segment = this.snake.segments[i]
+      if (
+        ( this.snakeHead.x === segment.x && 
+        this.snakeHead.y === segment.y ) ||
+        ( this.snakeHead.x === this.snake.last.x &&
+        this.snakeHead.y === this.snake.last.y )
+      ) {
+        this.end()
+        return
+      }
+    }
 
     if(this.snakeHead.x === 0 || this.snakeHead.x === this.cells.x + 1 || this.snakeHead.y === 0 || this.snakeHead.y === this.cells.y + 1) {
       this.end();

@@ -3,5 +3,5 @@ export const rand = (min, max) => {
 }
 
 export const restrict = (coord, max, length) => {
-    return coord + length >= max ? max - length - 1 : coord
+    return coord + length >= max ? max - length + 1 : coord
 }
