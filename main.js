@@ -43,7 +43,7 @@ class Field {
   default = {
     width: 800,
     height: 800,
-    cell: 40,
+    cell: 80,
     color: 'DarkBlue'
   }
   constructor(selector, options = this.default) {
@@ -120,12 +120,19 @@ class Field {
     }
 
     if (this.hasEqualCell()) {
-      this.drawApple()
+      this.score += 1
+      this.resetApple()
+      this.draw(false)
       return
     }
 
     this.drawCircle(this.apple.x, this.apple.y)
     this.apple.drawn = true
+  }
+  resetApple() {
+    this.apple.x = 0
+    this.apple.y = 0
+    this.apple.drawn = false
   }
   drawSnake(init = true) {
     if (init) {
@@ -158,7 +165,8 @@ class Field {
     this.snake.nextDirection = direction
   }
   hasEqualCell() {
-    return !!this.snake.segments.filter(el => JSON.stringify(el) === JSON.stringify(this.apple))?.length
+    const head = this.snake.segments.at(0)
+    return head.x === this.apple.x && head.y === this.apple.y
   }
   clearContext() {
     this.context.reset()
